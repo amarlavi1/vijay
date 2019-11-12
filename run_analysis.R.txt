@@ -1,0 +1,80 @@
+# This is the script to get and clean the data set.
+
+# 1. Merges the training and the test sets to create one data set.
+
+# Collecting X training and testing sets:
+XTrainSet <- data.table::fread("./UCI HAR Dataset/train/X_train.txt")
+XTestSet <- data.table::fread("./UCI HAR Dataset/test/X_test.txt")
+print(paste("XTrainSet has",nrow(XTrainSet),"rows and",length(XTrainSet),"columns."))
+print(paste("XTestSet has",nrow(XTestSet),"rows and",length(XTestSet),"columns."))
+
+# Merging Training and Test sets:
+Xmerged <- rbind(XTrainSet,XTestSet)
+print(paste("Xmerged has",nrow(Xmerged),"rows and",length(Xmerged),"columns."))
+
+# Collecting and Merging also the result sets:
+YTrainSet <- data.table::fread("./UCI HAR Dataset/train/y_train.txt")
+YTestSet <- data.table::fread("./UCI HAR Dataset/test/y_test.txt")
+Ymerged <- rbind(YTrainSet,YTestSet)
+print(paste("Ymerged has",nrow(Ymerged),"rows and",length(Ymerged),"column."))
+
+
+# 2. Extracts only the measurements on the mean and standard deviation for each measurement. 
+
+# Getting names of columns:
+colnames <- readLines("./UCI HAR Dataset/features.txt")
+splitNames <- strsplit(colnames, " ")
+secondElement <- function(x) {x[2]}
+names <- sapply(splitNames, secondElement)
+print(paste("There are",length(names),"columns in 'names'."))
+
+# Testing that training set and test set have the right number of columns:
+test <- length(Xmerged)==length(names)
+ifelse( test,
+        print("The dataset has the appropriate number of columns."),
+        print("Problem with the number of columns in the dataset.")
+        )
+
+
+# 3. Uses descriptive activity names to name the activities in the data set
+
+# Setting names to the data.tables:
+names(Xmerged) <- names
+names(Ymerged) <- c("activity")
+
+# Extracting a sublist of columns and applying it to data sets:
+selection <- grep("mean|std",names)
+Subnames <- names[selection]
+print(paste("Subnames has",length(Subnames),"elements."))
+X <- subset(Xmerged,,Subnames)
+print(paste("Xmerged has",nrow(Xmerged),"rows and",length(Xmerged),"columns."))
+
+# Downloading activity descriptions:
+descrip <- readLines("./UCI HAR Dataset/activity_labels.txt")
+descripSplit <- strsplit(descrip, " ")
+descripNames <- sapply(descripSplit, secondElement)
+
+# Setting the corresponding labels in Ymerged:
+names(Ymerged) <- c("activity")
+Y <- transform(Ymerged, activity=as.numeric(activity))
+Y$activity <- factor(Y$activity, levels=1:6, labels = c(descripNames))
+
+# Combining X and Ylab:
+data <- cbind(X,Y)
+print(paste("data has",nrow(data),"rows and",length(data),"columns."))
+
+# 4. Appropriately labels the data set with descriptive variable names.
+names <- names(data)
+newnames <- lapply(names, function(x) gsub("[()]","", x))
+colnames(data) <- as.character(newnames)
+data
+
+
+# 5. From the data set in step 4, creates a second, independent tidy data set
+# with the average of each variable for each activity and each subject.
+library(dplyr)
+# data %>% group_by(activity) %>% summarize(n())
+grpdata <- group_by(data, )
+
+# Exporting data table
+write.csv(data, "./CleanedData.txt")
